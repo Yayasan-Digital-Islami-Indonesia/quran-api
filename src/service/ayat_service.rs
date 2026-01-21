@@ -1,0 +1,66 @@
+use crate::dto::{AyatResponse, AyatQuery};
+use crate::error::ApiResult;
+use crate::repository::AyatRepository;
+use uuid::Uuid;
+
+pub struct AyatService {
+    repository: AyatRepository,
+}
+
+impl AyatService {
+    pub fn new(repository: AyatRepository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn list_ayats(&self, query: AyatQuery) -> ApiResult<Vec<AyatResponse>> {
+        let limit = query.limit.unwrap_or(20).min(100);
+        let page = query.page.unwrap_or(1).max(1);
+        let offset = (page - 1) * limit;
+
+        let ayats = if let Some(surah_id) = query.surah_id {
+            self.repository.find_by_surah(surah_id, limit, offset).await?
+        } else if let Some(juz) = query.juz {
+            self.repository.find_by_juz(juz, limit, offset).await?
+        } else if let Some(ref q) = query.q {
+            self.repository.search(q, limit, offset).await?
+        } else {
+            // Default: return empty or first page
+            vec![]
+        };
+
+        let responses = ayats
+            .into_iter()
+            .map(|a| AyatResponse {
+                id: a.id,
+                surah_id: a.surah_id,
+                ayah_number: a.ayah_number,
+                arab_text: a.arab_text,
+                translation: None, // TODO: Join with translation table
+                tafsir: None,      // TODO: Join with tafsir table
+                juz: a.juz,
+                hizb: a.hizb,
+            })
+            .collect();
+
+        Ok(responses)
+    }
+
+    pub async fn get_ayat(&self, id: Uuid) -> ApiResult<AyatResponse> {
+        let ayat = self
+            .repository
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| crate::error::ApiError::NotFound(format!("Ayat with id {} not found", id)))?;
+
+        Ok(AyatResponse {
+            id: ayat.id,
+            surah_id: ayat.surah_id,
+            ayah_number: ayat.ayah_number,
+            arab_text: ayat.arab_text,
+            translation: None, // TODO: Join with translation table
+            tafsir: None,      // TODO: Join with tafsir table
+            juz: ayat.juz,
+            hizb: ayat.hizb,
+        })
+    }
+}
