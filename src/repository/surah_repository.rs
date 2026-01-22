@@ -14,7 +14,7 @@ impl SurahRepository {
     pub async fn find_all(&self, limit: i32, offset: i32) -> ApiResult<Vec<Surah>> {
         let surahs = sqlx::query_as::<_, Surah>(
             r#"
-            SELECT id, number, name_arabic, name_latin, total_ayat, surah_type, meaning
+            SELECT id, number, name_arabic, name_latin, total_ayat, surah_type::TEXT, meaning
             FROM surah
             ORDER BY number
             LIMIT $1 OFFSET $2
@@ -31,7 +31,7 @@ impl SurahRepository {
     pub async fn find_by_id(&self, id: i16) -> ApiResult<Option<Surah>> {
         let surah = sqlx::query_as::<_, Surah>(
             r#"
-            SELECT id, number, name_arabic, name_latin, total_ayat, surah_type, meaning
+            SELECT id, number, name_arabic, name_latin, total_ayat, surah_type::TEXT, meaning
             FROM surah
             WHERE id = $1
             "#,
