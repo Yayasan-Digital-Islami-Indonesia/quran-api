@@ -26,8 +26,8 @@ CREATE TABLE ayat (
     surah_id SMALLINT NOT NULL REFERENCES surah(id) ON DELETE CASCADE,
     ayah_number SMALLINT NOT NULL,
     arab_text TEXT NOT NULL,
-    juz SMALLINT NOT NULL,
-    hizb SMALLINT NOT NULL,
+    juz SMALLINT,
+    hizb SMALLINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(surah_id, ayah_number)
