@@ -1,4 +1,4 @@
-use crate::dto::{AyatResponse, AyatQuery};
+use crate::dto::{AyatQuery, AyatResponse, AyatTafsirDto, AyatTranslationDto};
 use crate::error::ApiResult;
 use crate::repository::AyatRepository;
 use uuid::Uuid;
@@ -35,8 +35,8 @@ impl AyatService {
                 surah_id: a.surah_id,
                 ayah_number: a.ayah_number,
                 arab_text: a.arab_text,
-                translation: None, // TODO: Join with translation table
-                tafsir: None,      // TODO: Join with tafsir table
+                translations: vec![], // TODO: Fetch translations for list view
+                tafsirs: vec![],      // TODO: Fetch tafsirs for list view
                 juz: a.juz,
                 hizb: a.hizb,
             })
@@ -46,21 +46,49 @@ impl AyatService {
     }
 
     pub async fn get_ayat(&self, id: Uuid) -> ApiResult<AyatResponse> {
-        let ayat = self
+        let ayat_detail = self
             .repository
             .find_by_id(id)
             .await?
             .ok_or_else(|| crate::error::ApiError::NotFound(format!("Ayat with id {} not found", id)))?;
 
+        // Map translations to DTOs
+        let translations = ayat_detail
+            .translations
+            .into_iter()
+            .map(|t| AyatTranslationDto {
+                id: t.id,
+                language: t.language,
+                content: t.content,
+                translator: t.translator,
+                created_at: t.created_at,
+                updated_at: t.updated_at,
+            })
+            .collect();
+
+        // Map tafsirs to DTOs
+        let tafsirs = ayat_detail
+            .tafsirs
+            .into_iter()
+            .map(|t| AyatTafsirDto {
+                id: t.id,
+                kitab: t.kitab,
+                author: t.author,
+                content: t.content,
+                created_at: t.created_at,
+                updated_at: t.updated_at,
+            })
+            .collect();
+
         Ok(AyatResponse {
-            id: ayat.id,
-            surah_id: ayat.surah_id,
-            ayah_number: ayat.ayah_number,
-            arab_text: ayat.arab_text,
-            translation: None, // TODO: Join with translation table
-            tafsir: None,      // TODO: Join with tafsir table
-            juz: ayat.juz,
-            hizb: ayat.hizb,
+            id: ayat_detail.ayat.id,
+            surah_id: ayat_detail.ayat.surah_id,
+            ayah_number: ayat_detail.ayat.ayah_number,
+            arab_text: ayat_detail.ayat.arab_text,
+            translations,
+            tafsirs,
+            juz: ayat_detail.ayat.juz,
+            hizb: ayat_detail.ayat.hizb,
         })
     }
 }
